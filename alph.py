@@ -8,12 +8,12 @@ def score_func(value):
 
 def alph(k, t, prob):
 	score = 0
-	move_list = {temp:[] for temp in range(k)}
+	move_list = {temp:[] for temp in range(1, k + 1)}
 	for index in range(t):
 		if np.random.randn() < prob:
-			value = np.random.randint(1, k)
+			value = np.random.randint(1, k + 1)
 		else:
-			value = np.argmax([sum(move_list[temp]) / len(move_list[temp]) for temp in move_list if len(move_list[temp]) != 0])
+			value = np.argmax([sum(move_list[temp]) / len(move_list[temp]) for temp in move_list if len(move_list[temp]) > 0])
 
 		temp = score_func(value)
 		print('you got {}'.format(temp))
