@@ -1,41 +1,23 @@
 import numpy as np
+import copy
 
-states = ['up', 'down', 'right', 'left']
-step_score = {temp: [] for temp in states}
-score = 0
+states = []
+action = []
 
-def stratgy(snake_pos, snake_body, spawn_pos):
-	if snake_pos[0] > snake_body[-1][0]:
-		if snake_pos[0] > spawn_pos[0]:
-			return 'down'
-		elif snake_pos[0] < spawn_pos[1]:
-			return 'right'
-	elif snake_pos[0] < snake_body[-1][0]:
-		if snake_pos[0] > spawn_pos[0]:
-			return 'left'
-		elif snake_pos[0] < spawn_pos[0]:
-			return 'up'
-	elif snake_pos[1] > snake_body[-1][1]:
-		if snake_pos[1] > spawn_pos[1]:
-			return 'left'
-		elif snake_pos[1] < spawn_pos[1]:
-			return 'up'
-	elif snake_pos[1] < snake_body[-1][1]:
-		if snake_pos[1] > spawn_pos[1]:
-			return 'down'
-		elif snake_pos[1] < spawn_pos[1]:
-			return 'right'
+action_pro = []
+state_pro = []
+temp = 0
 
-def calculate_score():
+def calculate(temp_action, temp_state):
 	pass
 
-def evaluate(steps):
-	global score
-	for index in range(1, steps):
-		moved = 0
-		# stratgy(snake_pos, snake_body, spawn_pos), stratgy function
-		for temp in states:
-			step_score[temp].append(calculate_score())
-			moved += 1 / (len(states) - 1) * (1 / index * calculate_score() + (t - 1) / t * sum(step_score[temp]))
-		score = moved
-	return score
+for step in (1, steps):
+	temp_move = 0
+	for temp_action in range(len(action)):
+		for temp_state in range(len(states)):
+			temp_reward = calculate(temp_action, temp_state)
+			temp_move += action_pro[temp_action] * state_pro[temp_state] * (1 / steps * temp_reward + (step - 1) / step * (temp + temp_reward))
+
+
+	temp = temp_move
+
