@@ -3,8 +3,8 @@ import pygame, sys, random, time, math
 import numpy as np
 import tensorflow as tf
 
-WIDTH = 560
-LENGTH = 690
+WIDTH = 200
+LENGTH = 200
 
 # color sets
 red = pygame.Color(255, 0, 0)
@@ -20,7 +20,7 @@ snake_body = [[100, 50], [90, 50], [80, 50]]
 
 temp_snake_pos = snake_pos
 
-food_pos = [random.randrange(1,69)*10,random.randrange(1,56)*10]
+food_pos = [random.randrange(1,20)*10,random.randrange(1,20)*10]
 food_spawn = True
 
 direction = 'RIGHT'
@@ -59,7 +59,7 @@ def showScore(choice=1):
 	if choice == 1:
 		Srect.midtop = (80, 10)
 	else:
-		Srect.midtop = (360, 120)
+		Srect.midtop = (120, 120)
 	user_interface.blit(Ssurf,Srect)
 
 def softmax(input_list):
@@ -80,9 +80,9 @@ else:
 user_interface = pygame.display.set_mode((LENGTH, WIDTH))
 
 temp_y = tf.nn.relu(tf.matmul(state_input, state_weight) + bias)
-y_ = tf.nn.relu(tf.matmul(temp_y, action_weight))
+y_ = tf.matmul(temp_y, action_weight)
 loss = tf.reduce_sum(tf.square(previous_award - y_))
-train_op = tf.train.AdamOptimizer(0.01).minimize(loss)
+train_op = tf.train.AdamOptimizer(0.001).minimize(loss)
 
 with tf.Session() as sess:
 	tf.global_variables_initializer().run()
@@ -102,8 +102,10 @@ with tf.Session() as sess:
 			count_award[award_index] = [[0 for index in range(4)]]
 
 		train, out_put = sess.run([train_op, y_], feed_dict={state_input: temp_input, previous_award: count_award[award_index]})
-
+		print(count_award[award_index])
+		print(out_put[0])
 		change_to = change_to_sets[softmax(out_put[0])]
+
 
 		if change_to == 'RIGHT' and not direction == 'LEFT':
 			direction = 'RIGHT'
@@ -127,7 +129,6 @@ with tf.Session() as sess:
 		if direction == 'DOWN':
 			snake_pos[1] += 10
 
-
 		snake_body.insert(0, list(snake_pos))
 		if snake_pos[0] == food_pos[0] and snake_pos[1] == food_pos[1]:
 			count_award[award_index][0][direction_index] += 1000
@@ -136,7 +137,7 @@ with tf.Session() as sess:
 			snake_body.pop()
 			
 		if food_spawn == False:
-			food_pos = [random.randrange(1,690)*10,random.randrange(1,560)*10] 
+			food_pos = [random.randrange(1,20)*10,random.randrange(1,20)*10] 
 		food_spawn = True
 	
 		user_interface.fill(white)
@@ -153,11 +154,11 @@ with tf.Session() as sess:
 
 		temp_snake_pos = snake_pos
 
-		if snake_pos[0] > 680 or snake_pos[0] < 0:
+		if snake_pos[0] > 190 or snake_pos[0] < 0:
 			count_award[award_index][0][direction_index] -= 1000
 			re_init()
 			continue
-		elif snake_pos[1] > 550 or snake_pos[1] < 0:
+		elif snake_pos[1] > 190 or snake_pos[1] < 0:
 			count_award[award_index][0][direction_index] -= 1000
 			re_init()
 			continue
@@ -169,4 +170,4 @@ with tf.Session() as sess:
 
 		showScore()
 		pygame.display.flip()
-		controller.tick(60)
+		controller.tick(16)
