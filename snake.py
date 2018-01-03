@@ -36,13 +36,15 @@ score = 0
 count_award = {}
 direction_index = -1
 
-state_input = tf.placeholder(tf.float32, [None, 2], name='input')
+state_input = tf.placeholder(tf.float32, [None, 4], name='input')
 previous_award = tf.placeholder(tf.float32, [None, 4], name='check')
 
 with tf.name_scope('snake_game'):
-	state_weight = tf.get_variable('state_weight', [2, WIDTH * LENGTH], initializer=tf.truncated_normal_initializer())
+	state_weight = tf.get_variable('state_weight', [4, 8], initializer=tf.truncated_normal_initializer())
+	data_weight = tf.get_variable('data_weight', [8, WIDTH * LENGTH], initializer=tf.truncated_normal_initializer())
 	action_weight = tf.get_variable('action_weight', [WIDTH * LENGTH, 4], initializer=tf.truncated_normal_initializer())
-	bias = tf.get_variable('bias', [WIDTH * LENGTH], initializer=tf.constant_initializer(6))
+	state_bias = tf.get_variable('state_bias', [8], initializer=tf.constant_initializer(1))
+	data_bias = tf.get_variable('data_bias', [WIDTH * LENGTH], initializer=tf.constant_initializer(6))
 
 def re_init():
 	global score
@@ -83,28 +85,34 @@ else:
 
 user_interface = pygame.display.set_mode((LENGTH, WIDTH))
 
-temp_y = tf.nn.relu(tf.matmul(state_input, state_weight) + bias)
-y_ = tf.matmul(temp_y, action_weight)
+temp_y1 = tf.nn.relu(tf.matmul(state_input, state_weight) + state_bias)
+temp_y2 = tf.nn.relu(tf.matmul(temp_y1, data_weight) + data_bias)
+y_ = tf.matmul(temp_y2, action_weight)
 loss = tf.reduce_sum(tf.square(previous_award - y_))
 train_op = tf.train.AdamOptimizer(0.001).minimize(loss)
-
-if not tf.gfile.Exists(MODEL_DIR):
-    tf.gfile.MakeDirs(MODEL_DIR)
 
 saver = tf.train.Saver()
 
 with tf.Session() as sess:
-	tf.global_variables_initializer().run()
+
+	if not tf.gfile.Exists(MODEL_DIR):
+		tf.gfile.MakeDirs(MODEL_DIR)
+		tf.global_variables_initializer().run()
+	else:
+		saver.restore(sess, os.path.join(MODEL_DIR, MODEL_NAME))
+
 	while True:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
+				writer = tf.summary.FileWriter('log', tf.get_default_graph())
+				writer.close()
 				pygame.quit()
 				sys.exit()
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_ESCAPE:
 					pygame.event.post(pygame.event.Event(pygame.QUIT))
 
-		temp_input = [snake_pos]
+		temp_input = [snake_pos + food_pos]
 		award_index = str(snake_pos[0]) + ',' + str(snake_pos[1])
 
 		if not award_index in count_award:
@@ -141,6 +149,7 @@ with tf.Session() as sess:
 		snake_body.insert(0, list(snake_pos))
 		if snake_pos[0] == food_pos[0] and snake_pos[1] == food_pos[1]:
 			count_award[award_index][0][direction_index] += 1000
+			temp_snake_pos = snake_pos
 			food_spawn = False
 		else:
 			snake_body.pop()
@@ -155,28 +164,40 @@ with tf.Session() as sess:
 			pygame.draw.rect(user_interface, green, pygame.Rect(pos[0],pos[1],10,10))
 	
 		pygame.draw.rect(user_interface, brown, pygame.Rect(food_pos[0],food_pos[1],10,10))
-	
-		if cal_distance(snake_pos, food_pos) < cal_distance(temp_snake_pos, food_pos):
+		
+		if snake_pos[0] - food_pos[0] < temp_snake_pos[0] - food_pos[0]:
 			count_award[award_index][0][direction_index] += 100
+		elif snake_pos[0] - food_pos[0] == temp_snake_pos[0] - food_pos[0]:
+			pass
 		else:
-			count_award[award_index][0][direction_index] -= 50
+			count_award[award_index][0][direction_index] -= 100
 
-		temp_snake_pos = snake_pos
+		if snake_pos[1] - food_pos[1] < temp_snake_pos[1] - food_pos[1]:
+			count_award[award_index][0][direction_index] += 100
+		elif snake_pos[1] - food_pos[1] == temp_snake_pos[1] - food_pos[1]:
+			pass
+		else:
+			count_award[award_index][0][direction_index] -= 100
 
 		if snake_pos[0] > 90 or snake_pos[0] < 0:
 			count_award[award_index][0][direction_index] -= 1000
 			re_init()
+			temp_snake_pos = snake_pos
 			continue
 		elif snake_pos[1] > 90 or snake_pos[1] < 0:
 			count_award[award_index][0][direction_index] -= 1000
 			re_init()
+			temp_snake_pos = snake_pos
 			continue
 
 		for block in snake_body[1:]:
 			if snake_pos[0] == block[0] and snake_pos[1] == block[1]:
 				count_award[award_index][0][direction_index] -= 1000
 				re_init()
+				temp_snake_pos = snake_pos
 
-		showScore()
+		temp_snake_pos = snake_pos
+
+		# showScore()
 		pygame.display.flip()
-		controller.tick(60)
+		controller.tick(16)
